@@ -69,7 +69,7 @@ double lerp(double p1, double p2, double *w) {
 void *output(void *args) {
   int i, j, n = 0;
   Osc *o = NULL;
-  double a1, a2, a3, f1, f2, f3, s, v = 0.0;
+  double a1, a2, a3, f1, f2, f3, s1, s2, s3, v = 0.0;
   double *p1, *p2, *p3, *w;
   Audio *a = (Audio *)args;
   w = a->table;
@@ -88,8 +88,10 @@ void *output(void *args) {
       *p1 += f1;
       *p2 += f2;
       *p3 += f3;
-      s = lerp(*p1, *p1, w) * v;
-      a->buffer[i] = SHRT_MAX * s;
+      s2 = lerp(*p2, *p2, w) * a2;
+      *p1 += f2 * s2;
+      s1 = lerp(*p1, *p1, w) * a1;
+      a->buffer[i] = SHRT_MAX * s1 * v;
     }
     sio_write(a->sio, (void *)a->buffer, BUF_SIZE * 2);
   }
