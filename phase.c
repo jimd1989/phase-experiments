@@ -51,7 +51,7 @@ void makeAudio(Audio *a) {
   a->sio = sio;
   a->vol = 0.005;
   for (; i < OSCS; i++) {
-    a->oscs[i].amplitude = 0.5;
+    a->oscs[i].amplitude = 1.0;
   }
   makeSine(a->table);
 }
@@ -67,8 +67,7 @@ double lerp(double p1, double p2, double *w) {
 }
 
 void *output(void *args) {
-  int i, j, n = 0;
-  Osc *o = NULL;
+  int i, n = 0;
   double a1, a2, a3, f1, f2, f3, s1, s2, s3 = 0.0;
   double *p1, *p2, *p3, *v, *w;
   Audio *a = (Audio *)args;
@@ -88,7 +87,8 @@ void *output(void *args) {
       *p1 += f1;
       *p2 += f2;
       *p3 += f3;
-      /* Mix phase values in lerp to distort */
+      s3 = lerp(*p3, *p3, w) * a3;
+      *p2 += f3 * s3;
       s2 = lerp(*p2, *p1, w) * a2;
       *p1 += f2 * s2;
       s1 = lerp(*p1, *p1, w) * a1;
@@ -115,12 +115,15 @@ int main() {
   pthread_create(&p, NULL, output, (void *)&a);
   while (1) {
     fgets(buf, 4096, stdin);
-    if (buf[0] == '\n') {
+    if (buf[0] == '\n' || buf[0] == '\0') {
       continue;
     }
     tok = strtok(buf, " ");
     n = atoi(tok);
     tok = strtok(NULL, " ");
+    if (tok == '\0') {
+      continue;
+    }
     f = atof(tok);
     if (abs(n) > OSCS) {
       warnx("invalid osc number");
