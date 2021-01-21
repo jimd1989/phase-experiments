@@ -56,30 +56,48 @@ void makeAudio(Audio *a) {
   makeSine(a->table);
 }
 
+double lerp(double p1, double p2, double *w) {
+  int n = 0;
+  double r, f1, f2 = 0.0;
+  f1 = w[(unsigned int)p1 % WAVE_LEN];
+  f2 = w[((unsigned int)p2 + 1) % WAVE_LEN];
+  n = (unsigned int)p1;
+  r = p1 - n;
+  return ((1.0 - r) * f1) + (r * f2);
+}
+
 void *output(void *args) {
   int i, j, n = 0;
-  int16_t s = 0;
   Osc *o = NULL;
-  double f, f1, f2, r = 0.0;
+  double a1, a2, a3, f1, f2, f3, s, v = 0.0;
+  double *p1, *p2, *p3, *w;
   Audio *a = (Audio *)args;
+  w = a->table;
+  v = a->vol;
   while (1) {
     for (i = 0; i < BUF_SIZE; i++) {
-      for (j = 0; j < OSCS; j++) {
-        o = &a->oscs[j];
-        fmod(o->phase += o->pitch, (double)WAVE_LEN);
-      }
-      n = (int)o->phase;
-      r = o->phase - n;
-      f1 = a->table[n % WAVE_LEN];
-      f2 = a->table[(n+1) % WAVE_LEN];
-      f = ((1.0 - r) * f1) + (r * f2);
-      f *= a->vol;
-      s = SHRT_MAX * f;
-      a->buffer[i] = s;
+      f1 = a->oscs[0].pitch;
+      f2 = a->oscs[1].pitch;
+      f3 = a->oscs[2].pitch;
+      p1 = &a->oscs[0].phase;
+      p2 = &a->oscs[1].phase;
+      p3 = &a->oscs[2].phase;
+      a1 = a->oscs[0].amplitude;
+      a2 = a->oscs[1].amplitude;
+      a3 = a->oscs[2].amplitude;
+      *p1 += f1;
+      *p2 += f2;
+      *p3 += f3;
+      s = lerp(*p1, *p1, w) * v;
+      a->buffer[i] = SHRT_MAX * s;
     }
     sio_write(a->sio, (void *)a->buffer, BUF_SIZE * 2);
   }
   return NULL;
+}
+
+double hzToPitch(double f) {
+  return f * ((double)WAVE_LEN / (double)SAMPLE_RATE);
 }
 
 int main() {
@@ -108,7 +126,7 @@ int main() {
     } else if (n < 0) {
       a.oscs[abs(n) - 1].amplitude = f;
     } else {
-      a.oscs[n - 1].pitch = f;
+      a.oscs[n - 1].pitch = hzToPitch(f);
     }
   }
   pthread_join(p, NULL);
