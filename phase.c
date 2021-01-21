@@ -84,15 +84,15 @@ void *output(void *args) {
       a1 = a->oscs[0].amplitude;
       a2 = a->oscs[1].amplitude;
       a3 = a->oscs[2].amplitude;
-      *p1 += f1;
-      *p2 += f2;
-      *p3 += f3;
-      s3 = lerp(*p3, *p3, w) * a3;
+      *p1 = fmod((*p1 + f1), (double)WAVE_LEN);
+      *p2 = fmod((*p2 + f2), (double)WAVE_LEN);
+      *p3 = fmod((*p3 + f3), (double)WAVE_LEN);
+      s3 = lerp(*p3, *p2, w) * a3;
       *p2 += f3 * s3;
       s2 = lerp(*p2, *p1, w) * a2;
       *p1 += f2 * s2;
-      s1 = lerp(*p1, *p1, w) * a1;
-      a->buffer[i] = SHRT_MAX * s1 * *v;
+      s1 = lerp(*p1, *p3, w) * a1;
+      a->buffer[i] = SHRT_MAX * ((s2/2) + (s1/2)) * *v;
     }
     sio_write(a->sio, (void *)a->buffer, BUF_SIZE * 2);
   }
